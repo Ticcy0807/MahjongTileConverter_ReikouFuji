@@ -16,4 +16,4 @@ textarea { width: 100%; padding: 10px; box-sizing: border-box; }
        url('https://ticcy0807.github.io/MahjongTileConverter_ReikouFuji/I.MahjongJPReikouFuji-Regular.woff') format('woff');
   font-display: swap;
 }
-.preview-inner{ font-family: "MyFixedFont", system-ui, sans-serif; font-size: 80px; line-height: 0.85; white-space: pre-wrap; text-align: center; display: inline-block; max-width: 100%; }
+.preview-inner{ font-family: "MyFixedFont", system-ui, sans-serif; font-size: 80px; line-height: 0.86; white-space: pre-wrap; text-align: center; display: inline-block; max-width: 100%; }
