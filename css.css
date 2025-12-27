@@ -12,8 +12,8 @@ textarea { width: 100%; padding: 10px; box-sizing: border-box; }
 #screenshotButton:hover { background: #f6f6f6; }
 @font-face{
   font-family: "MyFixedFont";
-  src: url('https://ticcy0807.github.io/FontOnly/I.MahjongJPReikouFuji-Regular.woff2') format('woff2'),
-       url('https://ticcy0807.github.io/FontOnly/I.MahjongJPReikouFuji-Regular.woff') format('woff');
+  src: url('https://ticcy0807.github.io/MahjongTileConverter_ReikouFuji/I.MahjongJPReikouFuji-Regular.woff2') format('woff2'),
+       url('https://ticcy0807.github.io/MahjongTileConverter_ReikouFuji/I.MahjongJPReikouFuji-Regular.woff') format('woff');
   font-display: swap;
 }
 .preview-inner{ font-family: "MyFixedFont", system-ui, sans-serif; font-size: 80px; line-height: 0.85; white-space: pre-wrap; text-align: center; display: inline-block; max-width: 100%; }
