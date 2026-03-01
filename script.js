@@ -1,6 +1,4 @@
-﻿import html2canvas from "https://esm.sh/html2canvas";
-
-const input = document.getElementById("in");
+﻿const input = document.getElementById("in");
 const out = document.getElementById("out");
 const outInner = document.getElementById("outInner") || out;
 const fontSizeInput = document.getElementById("fontSize");
@@ -139,6 +137,10 @@ if (bgToggle) {
 
 if (screenshotButton) {
   screenshotButton.onclick = function() {
+    if (typeof html2canvas !== "function") {
+      console.error("html2canvas is not loaded.");
+      return;
+    }
     var outputArea = document.getElementById("out");
     var text = (outputArea.textContent || "").trim();
     if (!text) {
@@ -195,6 +197,8 @@ function render(){
 }
 input.addEventListener("input", render);
 render();
+
+
 
 
 
