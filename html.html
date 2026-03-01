@@ -1,0 +1,40 @@
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>&#x622A;&#x5716;&#x5DE5;&#x5177;</title>
+    <link rel="stylesheet" href="css.css" />
+  </head>
+
+  <body>
+    <div class="wrap">
+      <label for="in">&#x8F38;&#x5165;&#x9EBB;&#x96C0;&#x724C;&#x7DE8;&#x865F;</label>
+      <textarea
+        id="in"
+        rows="4"
+        placeholder="&#x8F38;&#x5165;&#x7DE8;&#x865F;"
+      ></textarea>
+
+      <label>&#x8F49;&#x63DB;&#x7D50;&#x679C;</label>
+      <div id="out" class="preview">
+        <div id="outInner" class="preview-inner">Empty</div>
+      </div>
+
+      <div class="controls">
+        <label class="control">
+          &#x5B57;&#x9AD4;&#x5927;&#x5C0F;&#xFF1A;<span id="fontSizeValue" class="value">80</span>px
+          <input id="fontSize" type="range" min="20" max="160" step="1" value="80" />
+        </label>
+
+        <label class="control checkbox">
+          <input id="bgToggle" type="checkbox" />
+          &#x986F;&#x793A;&#x5E95;&#x8272;
+        </label>
+
+        <button id="screenshotButton" type="button">&#x622A;&#x5716;</button>
+      </div>
+    </div>
+
+    <script type="module" src="js.js"></script>
+  </body>
+</html>
