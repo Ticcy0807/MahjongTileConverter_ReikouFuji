@@ -28,6 +28,7 @@ body {
   height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(320px, 28vw, 420px);
+  grid-template-rows: minmax(0, 1fr);
   gap: 12px;
   padding: 12px;
   overflow: hidden;
@@ -36,17 +37,16 @@ body {
 .table-stage {
   min-width: 0;
   min-height: 0;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid #e1e4e8;
   border-radius: 8px;
   background: #fff;
 }
 
 .table-shell {
-  width: min(100%, calc((100vh - 24px) * 4 / 3));
-  aspect-ratio: 4 / 3;
+  width: 1280px;
+  height: 960px;
+  margin: 0 auto;
   background: #fff;
 }
 
@@ -267,23 +267,24 @@ body {
 }
 
 .mahjong-table {
-  --seat-cell: clamp(30.4px, 2.9cqw, 37.1px);
-  --seat-font: clamp(48.5px, 4.7cqw, 59.9px);
+  --table-width: 1280px;
+  --table-height: 960px;
+  --seat-cell: 37.1px;
+  --seat-font: 59.9px;
   --river-cell: var(--seat-cell);
   --river-font: var(--seat-font);
   --panel-size: calc(var(--river-cell) * 6.2);
   --indicator-height: calc(var(--panel-size) * 0.31);
   --indicator-lift: calc(var(--river-cell) * -0.3);
   --center-cluster-tint: rgba(128, 128, 128, 0.08);
-  --side-seat-width: 92cqh;
-  --seat-left-anchor-top: 47.5cqh;
-  --main-cell: clamp(43.7px, 4.4cqw, 56.1px);
-  --main-font: clamp(70.3px, 6.9cqw, 89.3px);
+  --side-seat-width: 883.2px;
+  --seat-left-anchor-top: 456px;
+  --main-cell: 56.1px;
+  --main-font: 88.3px;
   --tile-line-height: 0.855;
-  container-type: size;
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: var(--table-width);
+  height: var(--table-height);
   overflow: hidden;
   background: #fff;
 }
@@ -291,15 +292,15 @@ body {
 .back-link {
   position: absolute;
   z-index: 30;
-  top: 1cqh;
-  left: 1cqw;
+  top: 9.6px;
+  left: 12.8px;
   padding: 5px 9px;
   border: 1px solid #d7d7d7;
   border-radius: 6px;
   color: #333;
   background: rgba(255, 255, 255, 0.86);
   font-family: system-ui, sans-serif;
-  font-size: clamp(11px, 1.1cqw, 14px);
+  font-size: 14px;
   text-decoration: none;
 }
 
@@ -418,7 +419,7 @@ body {
   right: 0;
   color: #252525;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: clamp(14px, calc(var(--active-cell) * 0.48), 20px);
+  font-size: min(calc(var(--active-cell) * 0.48), 20px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
@@ -433,7 +434,7 @@ body {
 }
 
 .seat-top {
-  top: 2.7cqh;
+  top: 25.9px;
   left: 50%;
   right: auto;
   transform: translateX(-50%);
@@ -456,14 +457,14 @@ body {
 
 .seat-left {
   top: var(--seat-left-anchor-top);
-  left: -34.2cqh;
+  left: -328.3px;
   transform: rotate(90deg);
   transform-origin: top center;
 }
 
 .seat-right {
-  top: calc(var(--seat-strip-reserved-width) + var(--seat-left-anchor-top) - var(--side-seat-width) + 0.2cqh);
-  right: -34.2cqh;
+  top: calc(var(--seat-strip-reserved-width) + var(--seat-left-anchor-top) - var(--side-seat-width) + 1.9px);
+  right: -328.3px;
   transform: rotate(-90deg);
   transform-origin: top center;
 }
@@ -479,7 +480,7 @@ body {
   --active-font: var(--main-font);
   left: 50%;
   right: auto;
-  bottom: 3.2cqh;
+  bottom: 30.7px;
   padding: 0;
   transform: translateX(-50%);
 }
@@ -518,26 +519,26 @@ body {
 }
 
 .river-top {
-  top: 22.7cqh;
+  top: 217.9px;
   left: 50%;
   transform: translateX(-50%) rotate(180deg);
 }
 
 .river-right {
   top: 50%;
-  right: 35.4cqw;
+  right: 453.1px;
   transform: translate(50%, -50%) rotate(-90deg);
 }
 
 .river-bottom {
-  bottom: 22.7cqh;
+  bottom: 217.9px;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .river-left {
   top: 50%;
-  left: 35.4cqw;
+  left: 453.1px;
   transform: translate(-50%, -50%) rotate(90deg);
 }
 
@@ -579,9 +580,9 @@ body {
   height: 100%;
   display: grid;
   grid-template-columns:
-    clamp(38px, calc(var(--panel-size) * 0.18), 48px) minmax(0, 1fr) clamp(38px, calc(var(--panel-size) * 0.18), 48px);
+    41.4px minmax(0, 1fr) 41.4px;
   grid-template-rows:
-    clamp(34px, calc(var(--panel-size) * 0.17), 46px) minmax(0, 1fr) clamp(34px, calc(var(--panel-size) * 0.17), 46px);
+    39.1px minmax(0, 1fr) 39.1px;
   grid-template-areas:
     "left top right"
     "left center right"
@@ -601,8 +602,8 @@ body {
   place-items: center;
   min-width: 0;
   min-height: 0;
-  padding: 0.35cqh 0.35cqw;
-  font-size: clamp(13px, calc(var(--panel-size) * 0.078), 18px);
+  padding: 3.4px 4.5px;
+  font-size: 17.9px;
   line-height: 1;
   color: rgba(255, 255, 255, 0.82);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.82);
@@ -612,7 +613,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(5px, calc(var(--panel-size) * 0.042), 10px);
+  gap: 9.7px;
   white-space: nowrap;
   letter-spacing: 0;
   transform-origin: center;
@@ -658,14 +659,14 @@ body {
   align-items: stretch;
   min-width: 0;
   min-height: 0;
-  padding: clamp(3px, calc(var(--panel-size) * 0.018), 5px);
+  padding: 4.1px;
 }
 
 .round-title {
   display: grid;
   place-items: center;
   min-width: 7ch;
-  font-size: clamp(24px, calc(var(--panel-size) * 0.16), 34px);
+  font-size: 34px;
   line-height: 1;
   letter-spacing: 0;
   text-shadow: 0 0 6px rgba(10, 83, 255, 0.9), 0 2px 4px rgba(0, 0, 0, 0.8);
@@ -676,10 +677,10 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   justify-items: center;
-  gap: clamp(2px, calc(var(--panel-size) * 0.025), 5px);
+  gap: 5px;
   width: 100%;
   font-family: system-ui, sans-serif;
-  font-size: clamp(9px, calc(var(--panel-size) * 0.055), 12px);
+  font-size: 12px;
   line-height: 1;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
@@ -698,17 +699,20 @@ body {
     height: auto;
     min-height: 100vh;
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
     overflow: visible;
   }
 
   .table-stage {
-    min-height: min(72vh, 720px);
+    height: min(72vh, 720px);
+    min-height: 420px;
     overflow: auto;
   }
 
   .table-shell {
-    width: min(100%, calc(72vh * 4 / 3));
-    min-width: 760px;
+    width: 1280px;
+    height: 960px;
+    margin: 0;
   }
 
   .control-panel {
