@@ -5,6 +5,7 @@ const fontSizeInput = document.getElementById("fontSize");
 const fontSizeValue = document.getElementById("fontSizeValue");
 const bgToggle = document.getElementById("bgToggle");
 const screenshotButton = document.getElementById("screenshotButton");
+const SCREENSHOT_PADDING = 5;
 
 function setFontSize(px) {
   if (!Number.isFinite(px)) {
@@ -45,7 +46,7 @@ function parseRgbColor(color) {
   };
 }
 
-function trimCanvasToContent(canvas, bgColor) {
+function trimCanvasToContent(canvas, bgColor, padding) {
   var ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) {
     return canvas;
@@ -71,6 +72,7 @@ function trimCanvasToContent(canvas, bgColor) {
   var bg = parseRgbColor(bgColor);
   var bgIsTransparent = !bg || bg.a === 0;
   var bgThreshold = 12;
+  var outputPadding = Number.isFinite(padding) ? Math.max(0, Math.round(padding)) : 0;
 
   for (var y = 0; y < h; y++) {
     for (var x = 0; x < w; x++) {
@@ -105,17 +107,129 @@ function trimCanvasToContent(canvas, bgColor) {
     return canvas;
   }
 
-  var padding = 2;
-  left = Math.max(0, left - padding);
-  top = Math.max(0, top - padding);
-  right = Math.min(w - 1, right + padding);
-  bottom = Math.min(h - 1, bottom + padding);
+  left = Math.max(0, left - outputPadding);
+  top = Math.max(0, top - outputPadding);
+  right = Math.min(w - 1, right + outputPadding);
+  bottom = Math.min(h - 1, bottom + outputPadding);
 
   var trimmed = document.createElement("canvas");
   trimmed.width = right - left + 1;
   trimmed.height = bottom - top + 1;
   trimmed.getContext("2d").drawImage(canvas, left, top, trimmed.width, trimmed.height, 0, 0, trimmed.width, trimmed.height);
   return trimmed;
+}
+
+function getCaptureSafePadding() {
+  var fontSize = parseFloat(getComputedStyle(outInner).fontSize);
+  if (!Number.isFinite(fontSize)) {
+    return 64;
+  }
+  return Math.max(32, Math.ceil(fontSize));
+}
+
+function waitForOutputFont(text) {
+  if (!document.fonts || typeof document.fonts.load !== "function") {
+    return Promise.resolve();
+  }
+  var fontSize = getComputedStyle(outInner).fontSize || "80px";
+  return document.fonts.load(`${fontSize} "MyFixedFont"`, text || " ").then(function() {
+    return document.fonts.ready;
+  }).catch(function() {
+    return undefined;
+  });
+}
+
+function getCanvasFont(styles) {
+  return [
+    styles.fontStyle || "normal",
+    styles.fontWeight || "400",
+    styles.fontSize || "80px",
+    styles.fontFamily || '"MyFixedFont", system-ui, sans-serif',
+  ].join(" ");
+}
+
+function getLineHeightPx(styles) {
+  var fontSize = parseFloat(styles.fontSize);
+  var lineHeight = parseFloat(styles.lineHeight);
+  if (Number.isFinite(lineHeight)) {
+    if (lineHeight > 0 && lineHeight < 4 && Number.isFinite(fontSize)) {
+      return fontSize * lineHeight;
+    }
+    return lineHeight;
+  }
+
+  return Number.isFinite(fontSize) ? fontSize * 0.855 : 68.4;
+}
+
+function createScreenshotCanvas(text, bgColor) {
+  var styles = getComputedStyle(outInner);
+  var font = getCanvasFont(styles);
+  var lineHeight = getLineHeightPx(styles);
+  var safePadding = getCaptureSafePadding();
+  var measureCanvas = document.createElement("canvas");
+  var measureCtx = measureCanvas.getContext("2d");
+  var lines = text.replace(/\r\n?/g, "\n").split("\n");
+  var bounds = {
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+  };
+
+  measureCtx.font = font;
+  measureCtx.textBaseline = "alphabetic";
+
+  var metrics = lines.map(function(line, index) {
+    var lineMetrics = measureCtx.measureText(line || " ");
+    var lineBounds = {
+      text: line,
+      baseline: index * lineHeight,
+      left: -lineMetrics.actualBoundingBoxLeft || 0,
+      top: -(lineMetrics.actualBoundingBoxAscent || parseFloat(styles.fontSize) || 80),
+      right: lineMetrics.actualBoundingBoxRight || lineMetrics.width || 0,
+      bottom: lineMetrics.actualBoundingBoxDescent || 0,
+    };
+
+    if (index === 0) {
+      bounds.left = lineBounds.left;
+      bounds.top = lineBounds.baseline + lineBounds.top;
+      bounds.right = lineBounds.right;
+      bounds.bottom = lineBounds.baseline + lineBounds.bottom;
+    } else {
+      bounds.left = Math.min(bounds.left, lineBounds.left);
+      bounds.top = Math.min(bounds.top, lineBounds.baseline + lineBounds.top);
+      bounds.right = Math.max(bounds.right, lineBounds.right);
+      bounds.bottom = Math.max(bounds.bottom, lineBounds.baseline + lineBounds.bottom);
+    }
+
+    return lineBounds;
+  });
+
+  var canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(bounds.right - bounds.left + safePadding * 2);
+  canvas.height = Math.ceil(bounds.bottom - bounds.top + safePadding * 2);
+
+  var ctx = canvas.getContext("2d");
+  if (bgColor) {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  ctx.font = font;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = styles.color || "#000";
+  metrics.forEach(function(lineBounds) {
+    ctx.fillText(lineBounds.text, safePadding - bounds.left, safePadding - bounds.top + lineBounds.baseline);
+  });
+
+  return trimCanvasToContent(canvas, bgColor, SCREENSHOT_PADDING);
+}
+
+function downloadCanvas(canvas, filename) {
+  var link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = filename;
+  link.click();
 }
 
 if (fontSizeInput) {
@@ -137,57 +251,20 @@ if (bgToggle) {
 
 if (screenshotButton) {
   screenshotButton.onclick = function() {
-    if (typeof html2canvas !== "function") {
-      console.error("html2canvas is not loaded.");
-      return;
-    }
     var outputArea = document.getElementById("out");
-    var text = (outputArea.textContent || "").trim();
+    var outputContent = document.getElementById("outInner") || outputArea;
+    var text = (outputContent.textContent || "").trim();
     if (!text) {
       return;
     }
     var bgEnabled = outputArea.classList.contains("has-bg");
     var bgColor = bgEnabled ? getComputedStyle(outputArea).backgroundColor : null;
 
-    var container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.left = "-10000px";
-    container.style.top = "0";
-    container.style.padding = "0";
-    container.style.margin = "0";
-    container.style.background = "transparent";
-    container.style.zIndex = "-1";
-
-    var clone = outputArea.cloneNode(true);
-    clone.removeAttribute("id");
-    clone.style.border = "none";
-    clone.style.padding = "4px";
-    clone.style.margin = "0";
-    clone.style.borderRadius = "0";
-    clone.style.minHeight = "0";
-    clone.style.width = "auto";
-    clone.style.height = "auto";
-    clone.style.display = "inline-grid";
-    clone.style.backgroundColor = bgEnabled ? bgColor : "transparent";
-
-    container.appendChild(clone);
-    document.body.appendChild(container);
-
-    var options = { backgroundColor: bgColor, useCORS: true };
-    html2canvas(clone, options)
-      .then(function(canvas) {
-        var resultCanvas = trimCanvasToContent(canvas, bgColor);
-        var link = document.createElement("a");
-        link.href = resultCanvas.toDataURL("image/png");
-        link.download = "screenshot.png";
-        link.click();
-      })
-      .catch(function(err) {
-        console.error(err);
-      })
-      .then(function() {
-        container.remove();
-      });
+    waitForOutputFont(text).then(function() {
+      downloadCanvas(createScreenshotCanvas(text, bgColor), "screenshot.png");
+    }).catch(function(err) {
+      console.error(err);
+    });
   };
 }
 
@@ -197,9 +274,3 @@ function render(){
 }
 input.addEventListener("input", render);
 render();
-
-
-
-
-
-
