@@ -1,7 +1,10 @@
 @font-face {
   font-family: "MyFixedFont";
-  src: url("./I.MahjongJPReikouFuji-Regular.woff2") format("woff2"),
-    url("./I.MahjongJPReikouFuji-Regular.woff") format("woff");
+  src: url("./I.MahjongJPReikouFuji-Regular_table.woff2") format("woff2"),
+    url("./I.MahjongJPReikouFuji-Regular_table.woff") format("woff");
+  ascent-override: 82.2927%;
+  descent-override: 6.1951%;
+  line-gap-override: 0%;
   font-display: block;
 }
 
@@ -240,19 +243,34 @@ body {
   background: rgba(255, 255, 255, 0.96);
 }
 
-.update-button {
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.action-button {
   height: 38px;
   border: 0;
   border-radius: 6px;
-  background: #1f2937;
-  color: #fff;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.update-button:active {
+.update-button {
+  background: #1f2937;
+  color: #fff;
+}
+
+.screenshot-button {
+  border: 1px solid #cfd5df;
+  background: #fff;
+  color: #273140;
+}
+
+.action-button:active {
   transform: translateY(1px);
 }
 
@@ -271,53 +289,53 @@ body {
 .mahjong-table {
   --table-width: 1280px;
   --table-height: 960px;
-  --seat-cell: 37.1px;
   --seat-font: 59.9px;
+  --tile-advance-width-ratio: 0.631707;
+  /* vertical tile advance width 1295 / unitsPerEm 2050 */
+  --tile-horizontal-advance-ratio: 1.349807;
+  /* horizontal tile advance 1748 / vertical tile advance 1295 */
+  --tile-glyph-height-ratio: 0.884878;
+  /* glyph height 1814 / unitsPerEm 2050 */
+  --seat-cell: calc(var(--seat-font) * var(--tile-advance-width-ratio));
   --river-cell: var(--seat-cell);
   --river-font: var(--seat-font);
-  --panel-size: calc(var(--river-cell) * 5.88);
-  --indicator-height: calc(var(--panel-size) * 0.31);
+  --panel-tile-count: 6.11;
+  --indicator-tile-count: 2;
+  --river-anchor-tile-count: 6.055;
+  --river-panel-gap: calc(var(--river-cell) * 0.2);
+  --river-content-inset: 0px;
+  --river-tile-step-ratio: 1;
+  --river-tile-step: calc(var(--river-cell) * var(--river-tile-step-ratio));
+  --panel-size: calc(var(--river-cell) * var(--panel-tile-count));
+  --panel-half-size: calc(var(--panel-size) * 0.5);
+  --indicator-height: calc(var(--river-cell) * var(--indicator-tile-count));
+  --tile-row-step-ratio: 0.855;
+  /* smaller than glyph height so adjacent row borders overlap */
+  --tile-line-height: var(--tile-glyph-height-ratio);
+  --river-line-height: var(--tile-row-step-ratio);
+  --river-row-height: calc(var(--river-font) * var(--river-line-height));
+  --river-width: calc(var(--river-cell) * var(--river-anchor-tile-count));
+  --river-height: calc(var(--river-row-height) * 3);
+  --river-half-height: calc(var(--river-height) * 0.5);
+  --river-tile-text-shift: 0px;
+  --tile-text-shift-ratio: 0;
   --indicator-lift: calc(var(--river-cell) * -0.0);
   --center-cluster-tint: rgba(128, 128, 128, 0.08);
   --side-seat-width: 883.2px;
-  --seat-left-anchor-top: 457px;
-  --main-cell: 56.1px;
+  --seat-left-anchor-top: 468px;
   --main-font: 88.3px;
+  --main-cell: calc(var(--main-font) * var(--tile-advance-width-ratio));
   --seat-tile-y-offset: 0px;
   --main-tile-y-offset: 0px;
   --seat-tile-y-adjust: 0px;
   --main-tile-y-adjust: 0px;
   --side-seat-top-adjust: calc(var(--seat-tile-y-offset));
-  --windows-side-seat-top-adjust: 6px;
-  --kita-count-top-ratio: -0.25;
-  --tile-line-height: 0.855;
+  --kita-count-top-ratio: -0.5;
   position: relative;
   width: var(--table-width);
   height: var(--table-height);
   overflow: hidden;
   background: #fff;
-}
-
-.is-windows .mahjong-table {
-  --seat-tile-y-adjust: 0px;
-  --main-tile-y-adjust: 0px;
-  --windows-side-seat-top-adjust: 0px;
-  --kita-count-top-ratio: -0.55;
-}
-
-.back-link {
-  position: absolute;
-  z-index: 30;
-  top: 9.6px;
-  left: 12.8px;
-  padding: 5px 9px;
-  border: 1px solid #d7d7d7;
-  border-radius: 6px;
-  color: #333;
-  background: rgba(255, 255, 255, 0.86);
-  font-family: system-ui, sans-serif;
-  font-size: 14px;
-  text-decoration: none;
 }
 
 .tiles {
@@ -327,10 +345,13 @@ body {
 }
 
 .tile {
+  --tile-glyph-height: calc(var(--tile-font, var(--seat-font)) * var(--tile-glyph-height-ratio));
   display: inline-flex;
   align-items: flex-end;
   justify-content: center;
   width: var(--tile-cell, auto);
+  height: var(--tile-glyph-height);
+  min-height: var(--tile-glyph-height);
   overflow: visible;
   white-space: nowrap;
   font-family: "MyFixedFont", system-ui, sans-serif;
@@ -344,7 +365,6 @@ body {
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.22));
 }
 
-.meld-run,
 .river-text {
   display: inline-block;
   overflow: visible;
@@ -361,7 +381,7 @@ body {
 }
 
 .tile.is-horizontal {
-  width: calc(var(--tile-cell, var(--seat-cell)) * 1.37);
+  width: calc(var(--tile-cell, var(--seat-cell)) * var(--tile-horizontal-advance-ratio));
 }
 
 .seat {
@@ -370,11 +390,12 @@ body {
   --active-cell: var(--seat-cell);
   --active-font: var(--seat-font);
   --tile-y-offset: calc(var(--seat-tile-y-offset) + var(--seat-tile-y-adjust));
+  --tile-text-shift: calc(var(--active-font) * var(--tile-text-shift-ratio));
   --kan-run-width: calc(var(--active-font) * 2.78);
   --melds-reserved-width: calc(var(--kan-run-width) * 4);
   --hand-draw-width: calc(var(--active-cell) * 2.5);
   --kita-width: var(--active-cell);
-  --tile-box-height: calc(var(--active-font) * var(--tile-line-height));
+  --tile-box-height: calc(var(--active-font) * var(--tile-glyph-height-ratio));
   --seat-strip-reserved-width: calc(var(--hand-draw-width) + var(--melds-reserved-width) + var(--kita-width));
 }
 
@@ -408,9 +429,62 @@ body {
   min-width: var(--active-cell);
 }
 
+.seat-line {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: max-content;
+  min-width: var(--active-cell);
+  min-height: var(--tile-box-height);
+  line-height: var(--tile-line-height);
+  overflow: visible;
+  white-space: nowrap;
+  font-family: "MyFixedFont", system-ui, sans-serif;
+  font-size: var(--active-font);
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: "liga" 1;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.22));
+}
+
+.seat-tile {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 0 0 var(--active-cell);
+  width: var(--active-cell);
+  height: var(--tile-box-height);
+  min-height: var(--tile-box-height);
+  overflow: visible;
+  white-space: nowrap;
+  font-family: "MyFixedFont", system-ui, sans-serif;
+  font-size: var(--active-font);
+  line-height: var(--tile-line-height);
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: "liga" 1;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+}
+
+.seat-tile-text {
+  display: block;
+  height: var(--tile-box-height);
+  min-height: var(--tile-box-height);
+  line-height: var(--tile-line-height);
+  transform: translateY(var(--tile-text-shift));
+}
+
+.seat-tile.is-horizontal {
+  flex-basis: calc(var(--active-cell) * var(--tile-horizontal-advance-ratio));
+  width: calc(var(--active-cell) * var(--tile-horizontal-advance-ratio));
+}
+
 .draw {
   flex: 0 0 auto;
-  width: var(--active-cell);
+  width: max-content;
+  min-width: var(--active-cell);
   margin-left: calc(var(--active-cell) * 0.5);
 }
 
@@ -422,7 +496,11 @@ body {
 }
 
 .kita {
+  --tile-cell: var(--active-cell);
+  --tile-font: var(--active-font);
   position: relative;
+  display: flex;
+  align-items: flex-end;
   justify-content: flex-start;
   flex: 0 0 auto;
   width: var(--kita-width);
@@ -430,6 +508,25 @@ body {
   height: var(--tile-box-height);
   min-height: var(--tile-box-height);
   overflow: visible;
+}
+
+.kita .tile {
+  flex: 0 0 var(--kita-width);
+  width: var(--kita-width);
+  min-width: var(--kita-width);
+  height: var(--tile-box-height);
+  min-height: var(--tile-box-height);
+}
+
+.kita .seat-line {
+  width: var(--kita-width);
+  min-width: var(--kita-width);
+}
+
+.kita .seat-tile {
+  flex: 0 0 var(--kita-width);
+  width: var(--kita-width);
+  min-width: var(--kita-width);
 }
 
 .kita::after {
@@ -466,7 +563,8 @@ body {
 }
 
 .seat .tile,
-.seat .meld-run {
+.seat-tile,
+.meld-run {
   --tile-cell: var(--active-cell);
   --tile-font: var(--active-font);
 }
@@ -477,14 +575,14 @@ body {
 }
 
 .seat-left {
-  top: calc(var(--seat-left-anchor-top) + var(--side-seat-top-adjust) + var(--windows-side-seat-top-adjust));
+  top: calc(var(--seat-left-anchor-top) + var(--side-seat-top-adjust));
   left: -280px;
   transform: rotate(90deg);
   transform-origin: top center;
 }
 
 .seat-right {
-  top: calc(var(--seat-strip-reserved-width) + var(--seat-left-anchor-top) + var(--side-seat-top-adjust) + var(--windows-side-seat-top-adjust) - var(--side-seat-width) + 1.9px);
+  top: calc(var(--seat-strip-reserved-width) + var(--seat-left-anchor-top) + var(--side-seat-top-adjust) - var(--side-seat-width) + 1.9px);
   right: -280px;
   transform: rotate(-90deg);
   transform-origin: top center;
@@ -518,16 +616,23 @@ body {
 }
 
 .meld-run {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex: 0 0 auto;
   width: auto;
+  height: auto;
+  min-height: var(--tile-box-height);
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .river {
   position: absolute;
   z-index: 6;
-  --river-row-height: calc(var(--river-font) * var(--tile-line-height));
   --tile-y-offset: calc(var(--seat-tile-y-offset) + var(--seat-tile-y-adjust));
-  width: var(--panel-size);
-  height: calc(var(--river-row-height) * 3);
+  width: var(--river-width);
+  height: var(--river-height);
   display: block;
   overflow: visible;
 }
@@ -535,9 +640,9 @@ body {
 .river-text {
   position: absolute;
   top: 0;
-  left: 0;
+  left: var(--river-content-inset);
   display: block;
-  width: 100%;
+  width: calc(100% - var(--river-content-inset));
   height: 100%;
   --tile-font: var(--river-font);
   text-align: left;
@@ -545,27 +650,91 @@ body {
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.18));
 }
 
+.river-line {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  line-height: var(--tile-line-height);
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.river-tile {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 0 0 var(--river-tile-step);
+  width: var(--river-tile-step);
+  height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  overflow: visible;
+  white-space: nowrap;
+  font-family: "MyFixedFont", system-ui, sans-serif;
+  font-size: var(--river-font);
+  line-height: var(--tile-line-height);
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: "liga" 1;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+}
+
+.river-tile-text {
+  display: block;
+  height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  line-height: var(--tile-line-height);
+  transform: translateY(var(--river-tile-text-shift));
+}
+
+.river-tile.is-horizontal {
+  flex-basis: calc(var(--river-tile-step) * var(--tile-horizontal-advance-ratio));
+  width: calc(var(--river-tile-step) * var(--tile-horizontal-advance-ratio));
+}
+
+.river-line:nth-child(1) {
+  top: 0;
+}
+
+.river-line:nth-child(2) {
+  top: var(--river-row-height);
+}
+
+.river-line:nth-child(3) {
+  top: calc(var(--river-row-height) + var(--river-row-height));
+}
+
+.river-line:nth-child(4) {
+  top: calc(var(--river-row-height) + var(--river-row-height) + var(--river-row-height));
+}
+
 .river-top {
-  top: 208px;
+  top: calc(50% - var(--panel-half-size) - var(--river-panel-gap) - var(--river-half-height));
   left: 50%;
-  transform: translateX(-50%) rotate(180deg);
+  transform: translate(-50%, -50%) rotate(180deg);
 }
 
 .river-right {
   top: 50%;
-  right: 444px;
-  transform: translate(50%, -50%) rotate(-90deg);
+  left: calc(50% + var(--panel-half-size) + var(--river-panel-gap) + var(--river-half-height));
+  right: auto;
+  transform: translate(-50%, -50%) rotate(-90deg);
 }
 
 .river-bottom {
-  bottom: 208px;
+  top: calc(50% + var(--panel-half-size) + var(--river-panel-gap) + var(--river-half-height));
+  bottom: auto;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
 }
 
 .river-left {
   top: 50%;
-  left: 444px;
+  left: calc(50% - var(--panel-half-size) - var(--river-panel-gap) - var(--river-half-height));
   transform: translate(-50%, -50%) rotate(90deg);
 }
 
@@ -584,13 +753,11 @@ body {
 }
 
 .dora-indicators {
-  --tile-y-offset: calc(var(--seat-tile-y-offset) + var(--seat-tile-y-adjust));
-  display: grid;
-  place-items: center;
+  position: relative;
+  display: block;
   width: 100%;
   height: 100%;
-  transform: translateY(calc(var(--indicator-lift) + var(--tile-y-offset)));
-  padding: calc(var(--indicator-height) * 0.08) calc(var(--river-cell) * 0.5);
+  transform: translateY(var(--indicator-lift));
   overflow: visible;
   white-space: nowrap;
   font-family: "MyFixedFont", system-ui, sans-serif;
@@ -603,8 +770,40 @@ body {
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.18));
 }
 
-.is-windows .dora-indicators {
-  --tile-y-offset: 0px;
+.indicator-line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  line-height: var(--tile-line-height);
+  overflow: visible;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.indicator-tile {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 0 0 var(--river-tile-step);
+  width: var(--river-tile-step);
+  height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.indicator-tile-text {
+  display: block;
+  height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
+  line-height: var(--tile-line-height);
+  transform: translateY(var(--river-tile-text-shift));
 }
 
 .center-panel {
