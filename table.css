@@ -2,7 +2,7 @@
   font-family: "MyFixedFont";
   src: url("./I.MahjongJPReikouFuji-Regular.woff2") format("woff2"),
     url("./I.MahjongJPReikouFuji-Regular.woff") format("woff");
-  font-display: swap;
+  font-display: block;
 }
 
 * {
@@ -13,6 +13,8 @@ html,
 body {
   height: 100%;
   min-height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -273,20 +275,34 @@ body {
   --seat-font: 59.9px;
   --river-cell: var(--seat-cell);
   --river-font: var(--seat-font);
-  --panel-size: calc(var(--river-cell) * 6.2);
+  --panel-size: calc(var(--river-cell) * 5.88);
   --indicator-height: calc(var(--panel-size) * 0.31);
-  --indicator-lift: calc(var(--river-cell) * -0.3);
+  --indicator-lift: calc(var(--river-cell) * -0.0);
   --center-cluster-tint: rgba(128, 128, 128, 0.08);
   --side-seat-width: 883.2px;
-  --seat-left-anchor-top: 456px;
+  --seat-left-anchor-top: 457px;
   --main-cell: 56.1px;
   --main-font: 88.3px;
+  --seat-tile-y-offset: 0px;
+  --main-tile-y-offset: 0px;
+  --seat-tile-y-adjust: 0px;
+  --main-tile-y-adjust: 0px;
+  --side-seat-top-adjust: calc(var(--seat-tile-y-offset));
+  --windows-side-seat-top-adjust: 6px;
+  --kita-count-top-ratio: -0.25;
   --tile-line-height: 0.855;
   position: relative;
   width: var(--table-width);
   height: var(--table-height);
   overflow: hidden;
   background: #fff;
+}
+
+.is-windows .mahjong-table {
+  --seat-tile-y-adjust: 0px;
+  --main-tile-y-adjust: 0px;
+  --windows-side-seat-top-adjust: 0px;
+  --kita-count-top-ratio: -0.55;
 }
 
 .back-link {
@@ -322,7 +338,9 @@ body {
   line-height: var(--tile-line-height);
   font-variant-ligatures: common-ligatures;
   font-feature-settings: "liga" 1;
+  font-synthesis: none;
   text-rendering: geometricPrecision;
+  transform: translateY(var(--tile-y-offset, 0px));
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.22));
 }
 
@@ -336,7 +354,9 @@ body {
   line-height: var(--tile-line-height);
   font-variant-ligatures: common-ligatures;
   font-feature-settings: "liga" 1;
+  font-synthesis: none;
   text-rendering: geometricPrecision;
+  transform: translateY(var(--tile-y-offset, 0px));
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.22));
 }
 
@@ -349,6 +369,7 @@ body {
   z-index: 8;
   --active-cell: var(--seat-cell);
   --active-font: var(--seat-font);
+  --tile-y-offset: calc(var(--seat-tile-y-offset) + var(--seat-tile-y-adjust));
   --kan-run-width: calc(var(--active-font) * 2.78);
   --melds-reserved-width: calc(var(--kan-run-width) * 4);
   --hand-draw-width: calc(var(--active-cell) * 2.5);
@@ -415,7 +436,7 @@ body {
   content: "\00d7" attr(data-count);
   position: absolute;
   z-index: 2;
-  top: calc(var(--active-cell) * -0.28);
+  top: calc(var(--active-cell) * var(--kita-count-top-ratio));
   right: 0;
   color: #252525;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -456,15 +477,15 @@ body {
 }
 
 .seat-left {
-  top: var(--seat-left-anchor-top);
-  left: -328.3px;
+  top: calc(var(--seat-left-anchor-top) + var(--side-seat-top-adjust) + var(--windows-side-seat-top-adjust));
+  left: -280px;
   transform: rotate(90deg);
   transform-origin: top center;
 }
 
 .seat-right {
-  top: calc(var(--seat-strip-reserved-width) + var(--seat-left-anchor-top) - var(--side-seat-width) + 1.9px);
-  right: -328.3px;
+  top: calc(var(--seat-strip-reserved-width) + var(--seat-left-anchor-top) + var(--side-seat-top-adjust) + var(--windows-side-seat-top-adjust) - var(--side-seat-width) + 1.9px);
+  right: -280px;
   transform: rotate(-90deg);
   transform-origin: top center;
 }
@@ -478,6 +499,7 @@ body {
 .seat-bottom {
   --active-cell: var(--main-cell);
   --active-font: var(--main-font);
+  --tile-y-offset: calc(var(--main-tile-y-offset) + var(--main-tile-y-adjust));
   left: 50%;
   right: auto;
   bottom: 30.7px;
@@ -502,43 +524,48 @@ body {
 .river {
   position: absolute;
   z-index: 6;
+  --river-row-height: calc(var(--river-font) * var(--tile-line-height));
+  --tile-y-offset: calc(var(--seat-tile-y-offset) + var(--seat-tile-y-adjust));
   width: var(--panel-size);
-  height: calc(var(--river-font) * var(--tile-line-height) * 3);
-  display: grid;
-  align-items: start;
-  justify-items: center;
+  height: calc(var(--river-row-height) * 3);
+  display: block;
   overflow: visible;
 }
 
 .river-text {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
   width: 100%;
+  height: 100%;
   --tile-font: var(--river-font);
   text-align: left;
+  contain: layout size;
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.18));
 }
 
 .river-top {
-  top: 217.9px;
+  top: 208px;
   left: 50%;
   transform: translateX(-50%) rotate(180deg);
 }
 
 .river-right {
   top: 50%;
-  right: 453.1px;
+  right: 444px;
   transform: translate(50%, -50%) rotate(-90deg);
 }
 
 .river-bottom {
-  bottom: 217.9px;
+  bottom: 208px;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .river-left {
   top: 50%;
-  left: 453.1px;
+  left: 444px;
   transform: translate(-50%, -50%) rotate(90deg);
 }
 
@@ -557,11 +584,12 @@ body {
 }
 
 .dora-indicators {
+  --tile-y-offset: calc(var(--seat-tile-y-offset) + var(--seat-tile-y-adjust));
   display: grid;
   place-items: center;
   width: 100%;
   height: 100%;
-  transform: translateY(var(--indicator-lift));
+  transform: translateY(calc(var(--indicator-lift) + var(--tile-y-offset)));
   padding: calc(var(--indicator-height) * 0.08) calc(var(--river-cell) * 0.5);
   overflow: visible;
   white-space: nowrap;
@@ -570,8 +598,13 @@ body {
   line-height: var(--tile-line-height);
   font-variant-ligatures: common-ligatures;
   font-feature-settings: "liga" 1;
+  font-synthesis: none;
   text-rendering: geometricPrecision;
   filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.18));
+}
+
+.is-windows .dora-indicators {
+  --tile-y-offset: 0px;
 }
 
 .center-panel {

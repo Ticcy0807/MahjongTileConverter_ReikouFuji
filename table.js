@@ -9,6 +9,7 @@ const initializeContentButton = document.getElementById("initializeContent");
 
 let activeSeat = "bottom";
 let statusTimer = 0;
+let isWindowsPlatform = false;
 
 const tableState = {
   seats: {},
@@ -24,6 +25,22 @@ const INITIAL_WINDS = {
 const TILE_BACK = "0*";
 const INDICATOR_COUNT = 5;
 const TILE_TOKEN_PATTERN = /0\*|[0-9][mpsz]/g;
+const TILE_CALIBRATION_SAMPLE = "1m";
+const TILE_CALIBRATION_MIN_RATIO = 0.75;
+const TILE_CALIBRATION_MAX_RATIO = 1.18;
+const TILE_Y_OFFSET_MIN_RATIO = -0.45;
+const TILE_Y_OFFSET_MAX_RATIO = 0.18;
+
+function markPlatformClasses() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const platform = [
+    navigator.platform,
+    navigator.userAgentData?.platform,
+  ].filter(Boolean).join(" ").toLowerCase();
+  const isWindows = userAgent.includes("windows") || platform.includes("win");
+  isWindowsPlatform = isWindows;
+  document.documentElement.classList.toggle("is-windows", isWindows);
+}
 
 function byName(name) {
   return form ? form.elements[name] : null;
@@ -47,6 +64,145 @@ function padDoraIndicators(value) {
   const tileCount = indicatorText.match(TILE_TOKEN_PATTERN)?.length || 0;
   const backCount = Math.max(0, INDICATOR_COUNT - tileCount);
   return `${indicatorText}${TILE_BACK.repeat(backCount)}`;
+}
+
+function readPxVariable(element, name) {
+  const value = Number.parseFloat(getComputedStyle(element).getPropertyValue(name));
+  return Number.isFinite(value) ? value : 0;
+}
+
+function readNumberVariable(element, name) {
+  const value = Number.parseFloat(getComputedStyle(element).getPropertyValue(name));
+  return Number.isFinite(value) ? value : 0;
+}
+
+function measureTileMetrics(fontSize) {
+  const measure = document.createElement("span");
+  measure.textContent = TILE_CALIBRATION_SAMPLE;
+  Object.assign(measure.style, {
+    position: "absolute",
+    left: "-9999px",
+    top: "-9999px",
+    visibility: "hidden",
+    whiteSpace: "nowrap",
+    fontFamily: '"MyFixedFont", system-ui, sans-serif',
+    fontSize: `${fontSize}px`,
+    lineHeight: "normal",
+    fontVariantLigatures: "common-ligatures",
+    fontFeatureSettings: '"liga" 1',
+    fontSynthesis: "none",
+    textRendering: "geometricPrecision",
+  });
+
+  document.body.appendChild(measure);
+  const rect = measure.getBoundingClientRect();
+  measure.remove();
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  let visualHeight = 0;
+  let visualTopOffset = 0;
+  let actualAscent = 0;
+  let fontAscent = 0;
+  let fontDescent = 0;
+  if (context) {
+    context.font = `${fontSize}px "MyFixedFont", system-ui, sans-serif`;
+    const metrics = context.measureText(TILE_CALIBRATION_SAMPLE);
+    actualAscent = metrics.actualBoundingBoxAscent || 0;
+    const actualDescent = metrics.actualBoundingBoxDescent || 0;
+    fontAscent = metrics.fontBoundingBoxAscent || 0;
+    fontDescent = metrics.fontBoundingBoxDescent || 0;
+    visualHeight = actualAscent + actualDescent;
+
+    if (actualAscent && fontAscent && fontDescent) {
+      visualTopOffset = fontAscent - actualAscent;
+    }
+  }
+
+  return {
+    width: rect.width,
+    height: visualHeight || rect.height,
+    topOffset: visualTopOffset,
+    actualAscent,
+    fontAscent,
+    fontDescent,
+  };
+}
+
+function getCalibratedFontSize(fontSize, targetWidth, targetHeight) {
+  const metrics = measureTileMetrics(fontSize);
+  if (!metrics.width || !metrics.height || !targetWidth || !targetHeight) {
+    return fontSize;
+  }
+
+  const widthRatio = targetWidth / metrics.width;
+  const heightRatio = targetHeight / metrics.height;
+  const ratio = Math.min(widthRatio, heightRatio);
+
+  if (ratio < TILE_CALIBRATION_MIN_RATIO || ratio > TILE_CALIBRATION_MAX_RATIO) {
+    return fontSize;
+  }
+
+  return Math.round(fontSize * ratio * 10) / 10;
+}
+
+function getClampedTileYOffset(fontSize, lineHeightRatio) {
+  const metrics = measureTileMetrics(fontSize);
+  if (!Number.isFinite(metrics.topOffset)) {
+    return 0;
+  }
+
+  const fontBoxHeight = metrics.fontAscent + metrics.fontDescent;
+  const lineHeight = fontSize * lineHeightRatio;
+  const topOffset = metrics.actualAscent && fontBoxHeight
+    ? ((lineHeight - fontBoxHeight) / 2) + metrics.fontAscent - metrics.actualAscent
+    : metrics.topOffset;
+  const rawOffset = -topOffset;
+  const minOffset = fontSize * TILE_Y_OFFSET_MIN_RATIO;
+  const maxOffset = fontSize * TILE_Y_OFFSET_MAX_RATIO;
+  return Math.round(Math.min(maxOffset, Math.max(minOffset, rawOffset)) * 10) / 10;
+}
+
+function calibrateTileFonts() {
+  const table = document.querySelector(".mahjong-table");
+  if (!table) {
+    return;
+  }
+
+  const lineHeight = readNumberVariable(table, "--tile-line-height") || 0.855;
+  const seatFont = readPxVariable(table, "--seat-font");
+  const seatCell = readPxVariable(table, "--seat-cell");
+  const mainFont = readPxVariable(table, "--main-font");
+  const mainCell = readPxVariable(table, "--main-cell");
+
+  const calibratedSeatFont = getCalibratedFontSize(seatFont, seatCell, seatFont * lineHeight);
+  const calibratedMainFont = getCalibratedFontSize(mainFont, mainCell, mainFont * lineHeight);
+  const seatYOffset = getClampedTileYOffset(calibratedSeatFont, lineHeight);
+  const mainYOffset = getClampedTileYOffset(calibratedMainFont, lineHeight);
+
+  table.style.setProperty("--seat-font", `${calibratedSeatFont}px`);
+  table.style.setProperty("--main-font", `${calibratedMainFont}px`);
+  table.style.setProperty("--seat-tile-y-offset", `${seatYOffset}px`);
+  table.style.setProperty("--main-tile-y-offset", `${mainYOffset}px`);
+}
+
+function calibrateTileFontsWhenReady() {
+  if (!isWindowsPlatform) {
+    return;
+  }
+
+  if (!document.fonts || typeof document.fonts.load !== "function") {
+    calibrateTileFonts();
+    return;
+  }
+
+  const table = document.querySelector(".mahjong-table");
+  const seatFont = table ? readPxVariable(table, "--seat-font") : 60;
+  document.fonts
+    .load(`${seatFont}px "MyFixedFont"`, TILE_CALIBRATION_SAMPLE)
+    .then(() => document.fonts.ready)
+    .then(calibrateTileFonts)
+    .catch(calibrateTileFonts);
 }
 
 function getSeatElement(seat) {
@@ -328,6 +484,8 @@ if (form) {
   });
 }
 
+markPlatformClasses();
 readInitialState();
 loadSeatDraft(activeSeat);
 setActiveTab(activeSeat);
+calibrateTileFontsWhenReady();
