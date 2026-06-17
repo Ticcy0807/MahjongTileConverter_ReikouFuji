@@ -1,7 +1,9 @@
 @font-face {
   font-family: "MyFixedFont";
-  src: url("./I.MahjongJPReikouFuji-Regular_table.woff2") format("woff2"),
-    url("./I.MahjongJPReikouFuji-Regular_table.woff") format("woff");
+  src: url("./I.MahjongJPReikouFuji-Regular_table.woff2?v=20260618bbox") format("woff2"),
+    url("./I.MahjongJPReikouFuji-Regular_table.woff?v=20260618bbox") format("woff"),
+    url("https://ticcy0807.github.io/FontOnly/I.MahjongJPReikouFuji-Regular.woff2") format("woff2"),
+    url("https://ticcy0807.github.io/FontOnly/I.MahjongJPReikouFuji-Regular.woff") format("woff");
   ascent-override: 82.2927%;
   descent-override: 6.1951%;
   line-gap-override: 0%;
@@ -292,8 +294,8 @@ body {
   --seat-font: 59.9px;
   --tile-advance-width-ratio: 0.631707;
   /* vertical tile advance width 1295 / unitsPerEm 2050 */
-  --tile-horizontal-advance-ratio: 1.349807;
-  /* horizontal tile advance 1748 / vertical tile advance 1295 */
+  --tile-horizontal-advance-ratio: 1.355;
+  /* tuned horizontal tile advance ratio for Windows rendering */
   --tile-glyph-height-ratio: 0.884878;
   /* glyph height 1814 / unitsPerEm 2050 */
   --seat-cell: calc(var(--seat-font) * var(--tile-advance-width-ratio));
@@ -473,6 +475,7 @@ body {
   height: var(--tile-box-height);
   min-height: var(--tile-box-height);
   line-height: var(--tile-line-height);
+  overflow: visible;
   transform: translateY(var(--tile-text-shift));
 }
 
@@ -688,6 +691,7 @@ body {
   height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
   min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
   line-height: var(--tile-line-height);
+  overflow: visible;
   transform: translateY(var(--river-tile-text-shift));
 }
 
@@ -803,6 +807,7 @@ body {
   height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
   min-height: calc(var(--river-font) * var(--tile-glyph-height-ratio));
   line-height: var(--tile-line-height);
+  overflow: visible;
   transform: translateY(var(--river-tile-text-shift));
 }
 

@@ -40,7 +40,10 @@ const WINDOWS_FIREFOX_RIVER_SHIFT_RATIO = 0.1;
 const SCREENSHOT_FILENAME = "mahjong-table.png";
 const SCREENSHOT_SVG_FALLBACK_FILENAME = "mahjong-table.svg";
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
-const SCREENSHOT_FONT_URL = "./I.MahjongJPReikouFuji-Regular_table.woff2";
+const SCREENSHOT_FONT_URLS = [
+  "./I.MahjongJPReikouFuji-Regular_table.woff2?v=20260618bbox",
+  "https://ticcy0807.github.io/FontOnly/I.MahjongJPReikouFuji-Regular.woff2",
+];
 
 function markPlatformClasses() {
   const userAgent = navigator.userAgent.toLowerCase();
@@ -626,28 +629,37 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-async function getScreenshotFontFaceCss() {
-  try {
-    const fontUrl = new URL(SCREENSHOT_FONT_URL, document.baseURI);
-    const response = await fetch(fontUrl.href);
-    if (!response.ok) {
-      return "";
-    }
-    const fontData = arrayBufferToBase64(await response.arrayBuffer());
-    return [
-      "@font-face {",
-      'font-family: "MyFixedFont";',
-      `src: url("data:font/woff2;base64,${fontData}") format("woff2");`,
-      "ascent-override: 82.2927%;",
-      "descent-override: 6.1951%;",
-      "line-gap-override: 0%;",
-      "font-display: block;",
-      "}",
-    ].join("");
-  } catch (error) {
-    console.error(error);
-    return "";
+async function fetchFontDataUrl(fontPath) {
+  const fontUrl = new URL(fontPath, document.baseURI);
+  const response = await fetch(fontUrl.href);
+  if (!response.ok) {
+    throw new Error(`Unable to load font: ${fontUrl.href}`);
   }
+
+  const fontData = arrayBufferToBase64(await response.arrayBuffer());
+  return `data:font/woff2;base64,${fontData}`;
+}
+
+async function getScreenshotFontFaceCss() {
+  for (const fontPath of SCREENSHOT_FONT_URLS) {
+    try {
+      const fontDataUrl = await fetchFontDataUrl(fontPath);
+      return [
+        "@font-face {",
+        'font-family: "MyFixedFont";',
+        `src: url("${fontDataUrl}") format("woff2");`,
+        "ascent-override: 82.2927%;",
+        "descent-override: 6.1951%;",
+        "line-gap-override: 0%;",
+        "font-display: block;",
+        "}",
+      ].join("");
+    } catch (error) {
+      console.warn(error);
+    }
+  }
+
+  return "";
 }
 
 function inlineComputedStyles(source, clone) {
