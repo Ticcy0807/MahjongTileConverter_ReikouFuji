@@ -1,7 +1,8 @@
 const SEATS = ["bottom", "right", "top", "left"];
 const WINDS = ["東", "南", "西", "北"];
 const AUTO_BACK_HAND_SEATS = ["right", "top", "left"];
-const TOTAL_TILE_COUNT = 136;
+const YONMA_TOTAL_TILE_COUNT = 136;
+const SANMA_TOTAL_TILE_COUNT = 108;
 const DEAD_WALL_TILE_COUNT = 14;
 
 const form = document.querySelector(".table-controls");
@@ -11,6 +12,7 @@ const updateStatus = document.getElementById("updateStatus");
 const initializeRoundButton = document.getElementById("initializeRound");
 const initializeContentButton = document.getElementById("initializeContent");
 const screenshotButton = document.getElementById("captureTableScreenshot");
+const tileDraftControls = ["hand", "draw", "kita", "melds", "river"];
 
 let activeSeat = "bottom";
 let statusTimer = 0;
@@ -374,7 +376,41 @@ function getControlValue(name) {
   return byName(name)?.value || "";
 }
 
-function saveActiveSeatDraft() {
+function getGameMode() {
+  return getControlValue("game-mode") === "sanma" ? "sanma" : "yonma";
+}
+
+function isSanmaMode() {
+  return getGameMode() === "sanma";
+}
+
+function getVacantSeat() {
+  const vacantSeat = getControlValue("vacant-seat");
+  return ["right", "top", "left"].includes(vacantSeat) ? vacantSeat : "right";
+}
+
+function getActiveSeats() {
+  const vacantSeat = isSanmaMode() ? getVacantSeat() : "";
+  return SEATS.filter((seat) => seat !== vacantSeat);
+}
+
+function isActiveSeat(seat) {
+  return getActiveSeats().includes(seat);
+}
+
+function getWindCycle() {
+  return isSanmaMode() ? WINDS.slice(0, 3) : WINDS;
+}
+
+function getTotalTileCount() {
+  return isSanmaMode() ? SANMA_TOTAL_TILE_COUNT : YONMA_TOTAL_TILE_COUNT;
+}
+
+function saveActiveSeatDraft(options = {}) {
+  if (!options.force && !isActiveSeat(activeSeat)) {
+    return;
+  }
+
   tableState.seats[activeSeat] = {
     hand: getControlValue("hand").trim(),
     draw: getControlValue("draw").trim(),
@@ -394,15 +430,26 @@ function loadSeatDraft(seat) {
 }
 
 function syncWindControls(changedSeat) {
-  const changedSeatIndex = SEATS.indexOf(changedSeat);
-  const changedWindIndex = WINDS.indexOf(getControlValue(`${changedSeat}-wind`));
+  const activeSeats = getActiveSeats();
+  const windCycle = getWindCycle();
+  const changedSeatIndex = activeSeats.indexOf(changedSeat);
+  const changedWindIndex = windCycle.indexOf(getControlValue(`${changedSeat}-wind`));
   if (changedSeatIndex < 0 || changedWindIndex < 0) {
     return;
   }
 
-  SEATS.forEach((seat, seatIndex) => {
-    const windIndex = (changedWindIndex + seatIndex - changedSeatIndex + WINDS.length) % WINDS.length;
-    setControlValue(`${seat}-wind`, WINDS[windIndex]);
+  activeSeats.forEach((seat, seatIndex) => {
+    const windIndex = (changedWindIndex + seatIndex - changedSeatIndex + windCycle.length) % windCycle.length;
+    setControlValue(`${seat}-wind`, windCycle[windIndex]);
+  });
+}
+
+function syncModeWinds() {
+  const activeSeats = getActiveSeats();
+  const windCycle = getWindCycle();
+
+  activeSeats.forEach((seat, seatIndex) => {
+    setControlValue(`${seat}-wind`, windCycle[seatIndex % windCycle.length]);
   });
 }
 
@@ -419,18 +466,75 @@ function countSeatStateTiles(seat, seatState) {
 }
 
 function getRemainingTileCount() {
-  const usedTileCount = SEATS.reduce((total, seat) => {
+  const usedTileCount = getActiveSeats().reduce((total, seat) => {
     return total + countSeatStateTiles(seat, tableState.seats[seat]);
   }, 0);
-  return TOTAL_TILE_COUNT - DEAD_WALL_TILE_COUNT - usedTileCount;
+  return getTotalTileCount() - DEAD_WALL_TILE_COUNT - usedTileCount;
 }
 
 function setActiveTab(seat) {
   tabButtons.forEach((button) => {
     const isActive = button.dataset.seat === seat;
+    const isDisabled = !isActiveSeat(button.dataset.seat);
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-selected", String(isActive));
+    button.disabled = isDisabled;
   });
+}
+
+function setSeatControlDisabled(seat, isDisabled) {
+  [`${seat}-wind`, `${seat}-score`].forEach((name) => {
+    const control = byName(name);
+    if (control) {
+      control.disabled = isDisabled;
+      control.closest(".score-row")?.classList.toggle("is-disabled", isDisabled);
+    }
+  });
+}
+
+function setWindOptionAvailability(seat) {
+  const control = byName(`${seat}-wind`);
+  if (!control) {
+    return;
+  }
+
+  Array.from(control.options).forEach((option) => {
+    option.disabled = isSanmaMode() && option.value === "北";
+  });
+}
+
+function setTileDraftControlsDisabled(isDisabled) {
+  tileDraftControls.forEach((name) => {
+    const control = byName(name);
+    if (control) {
+      control.disabled = isDisabled;
+    }
+  });
+}
+
+function ensureActiveSeatAvailable() {
+  if (isActiveSeat(activeSeat)) {
+    return;
+  }
+
+  activeSeat = getActiveSeats()[0] || "bottom";
+  loadSeatDraft(activeSeat);
+}
+
+function applyModeControls() {
+  const vacantControl = byName("vacant-seat");
+  if (vacantControl) {
+    vacantControl.disabled = !isSanmaMode();
+  }
+
+  SEATS.forEach((seat) => {
+    setSeatControlDisabled(seat, !isActiveSeat(seat));
+    setWindOptionAvailability(seat);
+  });
+
+  ensureActiveSeatAvailable();
+  setActiveTab(activeSeat);
+  setTileDraftControlsDisabled(!isActiveSeat(activeSeat));
 }
 
 function createMeasuredTile(token, tileClass, textClass) {
@@ -532,6 +636,15 @@ function renderSeat(seat) {
     return;
   }
 
+  if (!isActiveSeat(seat)) {
+    renderTileLine(seatElement.querySelector(".hand"), "");
+    renderTileLine(seatElement.querySelector(".draw"), "");
+    renderMelds(seat, "");
+    renderKita(seat, 0);
+    renderRiver(seat, "");
+    return;
+  }
+
   renderTileLine(seatElement.querySelector(".hand"), getAutoBackHand(seat, seatState));
   renderTileLine(seatElement.querySelector(".draw"), seatState.draw);
   renderMelds(seat, seatState.melds);
@@ -547,6 +660,10 @@ function renderScore(seat) {
     return;
   }
   content.textContent = "";
+  if (!isActiveSeat(seat)) {
+    return;
+  }
+
   [wind, score].forEach((value) => {
     const span = document.createElement("span");
     span.textContent = value;
@@ -590,6 +707,7 @@ function renderDoraIndicators() {
 }
 
 function renderTable() {
+  applyModeControls();
   renderRound();
   renderDoraIndicators();
   SEATS.forEach((seat) => {
@@ -842,6 +960,8 @@ function initializeRoundDraft() {
     setControlValue(`${seat}-score`, "25000");
     setControlValue(`${seat}-wind`, INITIAL_WINDS[seat]);
   });
+  syncModeWinds();
+  applyModeControls();
 
   showStatus("場次已初始化，按更新套用");
 }
@@ -851,20 +971,30 @@ function initializeContentDraft() {
     tableState.seats[seat] = createEmptySeatState();
   });
   setControlValue("dora-indicators", "");
+  applyModeControls();
   loadSeatDraft(activeSeat);
   showStatus("內容已初始化，按更新套用");
+}
+
+function handleModeSettingsChange() {
+  saveActiveSeatDraft({ force: true });
+  syncModeWinds();
+  applyModeControls();
+  renderTable();
+  showUpdatedStatus();
 }
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const nextSeat = button.dataset.seat;
-    if (!nextSeat || nextSeat === activeSeat) {
+    if (!nextSeat || nextSeat === activeSeat || !isActiveSeat(nextSeat)) {
       return;
     }
     saveActiveSeatDraft();
     activeSeat = nextSeat;
     setActiveTab(activeSeat);
     loadSeatDraft(activeSeat);
+    setTileDraftControlsDisabled(false);
   });
 });
 
@@ -881,7 +1011,15 @@ SEATS.forEach((seat) => {
   if (windControl) {
     windControl.addEventListener("change", () => {
       syncWindControls(seat);
+      applyModeControls();
     });
+  }
+});
+
+["game-mode", "vacant-seat"].forEach((name) => {
+  const control = byName(name);
+  if (control) {
+    control.addEventListener("change", handleModeSettingsChange);
   }
 });
 
@@ -913,6 +1051,7 @@ if (form) {
 
 markPlatformClasses();
 readInitialState();
+applyModeControls();
 loadSeatDraft(activeSeat);
 setActiveTab(activeSeat);
 renderTable();
