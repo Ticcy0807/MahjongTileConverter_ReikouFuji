@@ -6,6 +6,10 @@ const fontSizeValue = document.getElementById("fontSizeValue");
 const bgToggle = document.getElementById("bgToggle");
 const screenshotButton = document.getElementById("screenshotButton");
 const SCREENSHOT_PADDING = 5;
+const TILE_SHADOW_OFFSET_X = 1;
+const TILE_SHADOW_OFFSET_Y = 2;
+const TILE_SHADOW_BLUR = 1;
+const TILE_SHADOW_COLOR = "rgba(0, 0, 0, 0.22)";
 
 function setFontSize(px) {
   if (!Number.isFinite(px)) {
@@ -218,6 +222,10 @@ function createScreenshotCanvas(text, bgColor) {
   ctx.font = font;
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = styles.color || "#000";
+  ctx.shadowColor = TILE_SHADOW_COLOR;
+  ctx.shadowBlur = TILE_SHADOW_BLUR;
+  ctx.shadowOffsetX = TILE_SHADOW_OFFSET_X;
+  ctx.shadowOffsetY = TILE_SHADOW_OFFSET_Y;
   metrics.forEach(function(lineBounds) {
     ctx.fillText(lineBounds.text, safePadding - bounds.left, safePadding - bounds.top + lineBounds.baseline);
   });

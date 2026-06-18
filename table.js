@@ -40,7 +40,6 @@ const TILE_Y_OFFSET_MIN_RATIO = -0.45;
 const TILE_Y_OFFSET_MAX_RATIO = 0.18;
 const WINDOWS_FIREFOX_RIVER_SHIFT_RATIO = 0.1;
 const SCREENSHOT_FILENAME = "mahjong-table.png";
-const SCREENSHOT_SVG_FALLBACK_FILENAME = "mahjong-table.svg";
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SCREENSHOT_FONT_URLS = [
   "./I.MahjongJPReikouFuji-Regular_table.woff2?v=20260618bbox",
@@ -114,6 +113,32 @@ function readPxVariable(element, name) {
 function readNumberVariable(element, name) {
   const value = Number.parseFloat(getComputedStyle(element).getPropertyValue(name));
   return Number.isFinite(value) ? value : 0;
+}
+
+function resolveLengthVariable(element, name) {
+  if (!element) {
+    return 0;
+  }
+
+  const rawValue = getComputedStyle(element).getPropertyValue(name).trim();
+  if (/^-?(?:\d+|\d*\.\d+)px$/.test(rawValue)) {
+    return Number.parseFloat(rawValue);
+  }
+
+  const probe = document.createElement("span");
+  Object.assign(probe.style, {
+    position: "absolute",
+    left: "-9999px",
+    top: "-9999px",
+    visibility: "hidden",
+    width: `var(${name})`,
+    height: "0",
+    overflow: "hidden",
+  });
+  element.appendChild(probe);
+  const width = probe.offsetWidth || probe.getBoundingClientRect().width;
+  probe.remove();
+  return Number.isFinite(width) ? width : 0;
 }
 
 function measureTileMetrics(fontSize) {
@@ -224,6 +249,7 @@ function calibrateTileFonts() {
   table.style.setProperty("--main-font", `${calibratedMainFont}px`);
   table.style.setProperty("--seat-tile-y-offset", `${seatYOffset}px`);
   table.style.setProperty("--main-tile-y-offset", `${mainYOffset}px`);
+  updateAllSeatHandLayouts();
 }
 
 function calibrateTileFontsWhenReady() {
@@ -608,6 +634,42 @@ function renderKita(seat, value) {
   renderTileLine(container, count > 0 ? "4z" : "");
 }
 
+function updateSeatHandLayout(seat) {
+  const seatElement = getSeatElement(seat);
+  const melds = seatElement?.querySelector(".melds");
+  if (!seatElement || !melds) {
+    return;
+  }
+
+  const meldWidth = Array.from(melds.children).reduce((total, meld) => {
+    return total + (meld.scrollWidth || meld.getBoundingClientRect().width);
+  }, 0);
+  if (!meldWidth) {
+    seatElement.style.setProperty("--hand-draw-shift", "0px");
+    return;
+  }
+
+  const reservedMeldWidth = resolveLengthVariable(seatElement, "--melds-reserved-width");
+  const kitaWidth = resolveLengthVariable(seatElement, "--kita-width");
+  const meldDrawGap = resolveLengthVariable(seatElement, "--meld-draw-gap-width");
+  const meldKitaAnchorShift = resolveLengthVariable(seatElement, "--meld-kita-anchor-shift");
+  const pressureSign = readNumberVariable(seatElement, "--hand-pressure-sign") || -1;
+  const pressureScale = readNumberVariable(seatElement, "--hand-pressure-scale") || 1;
+  if (!reservedMeldWidth) {
+    seatElement.style.setProperty("--hand-draw-shift", "0px");
+    return;
+  }
+
+  const meldRatio = Math.min(1, meldWidth / reservedMeldWidth);
+  const maxShift = meldKitaAnchorShift + (pressureSign * ((reservedMeldWidth + kitaWidth + meldDrawGap) / 2));
+  const shift = Math.round(maxShift * meldRatio * pressureScale * 10) / 10;
+  seatElement.style.setProperty("--hand-draw-shift", `${shift}px`);
+}
+
+function updateAllSeatHandLayouts() {
+  SEATS.forEach(updateSeatHandLayout);
+}
+
 function renderRiver(seat, value) {
   const river = getRiverElement(seat);
   if (!river) {
@@ -641,6 +703,7 @@ function renderSeat(seat) {
     renderTileLine(seatElement.querySelector(".draw"), "");
     renderMelds(seat, "");
     renderKita(seat, 0);
+    updateSeatHandLayout(seat);
     renderRiver(seat, "");
     return;
   }
@@ -649,6 +712,7 @@ function renderSeat(seat) {
   renderTileLine(seatElement.querySelector(".draw"), seatState.draw);
   renderMelds(seat, seatState.melds);
   renderKita(seat, seatState.kita);
+  updateSeatHandLayout(seat);
   renderRiver(seat, seatState.river);
 }
 
@@ -814,12 +878,28 @@ function downloadBlob(blob, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+function downloadDataUrl(dataUrl, filename) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 function downloadCanvasPng(canvas, filename) {
   return new Promise((resolve, reject) => {
     try {
+      if (typeof canvas.toBlob !== "function") {
+        downloadDataUrl(canvas.toDataURL("image/png"), filename);
+        resolve();
+        return;
+      }
+
       canvas.toBlob((blob) => {
         if (!blob) {
-          reject(new Error("Canvas output is empty."));
+          downloadDataUrl(canvas.toDataURL("image/png"), filename);
+          resolve();
           return;
         }
         downloadBlob(blob, filename);
@@ -874,6 +954,7 @@ async function createTableScreenshotSvg(table) {
   return {
     width,
     height,
+    svgText,
     blob: new Blob([svgText], { type: "image/svg+xml;charset=utf-8" }),
   };
 }
@@ -881,9 +962,8 @@ async function createTableScreenshotSvg(table) {
 function renderSvgToCanvas(svgCapture) {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    const url = URL.createObjectURL(svgCapture.blob);
+    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgCapture.svgText)}`;
     image.onload = () => {
-      URL.revokeObjectURL(url);
       const canvas = document.createElement("canvas");
       canvas.width = svgCapture.width;
       canvas.height = svgCapture.height;
@@ -898,10 +978,9 @@ function renderSvgToCanvas(svgCapture) {
       resolve(canvas);
     };
     image.onerror = () => {
-      URL.revokeObjectURL(url);
       reject(new Error("Unable to render table screenshot."));
     };
-    image.src = url;
+    image.src = dataUrl;
   });
 }
 
@@ -919,8 +998,7 @@ async function captureTableScreenshot() {
     showStatus("截圖已下載");
   } catch (error) {
     console.error(error);
-    downloadBlob(svgCapture.blob, SCREENSHOT_SVG_FALLBACK_FILENAME);
-    showStatus("已下載 SVG");
+    showStatus("PNG 產生失敗");
   }
 }
 

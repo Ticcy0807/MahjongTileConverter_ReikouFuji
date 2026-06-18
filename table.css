@@ -340,8 +340,8 @@ body {
   --tile-text-shift-ratio: 0;
   --indicator-lift: calc(var(--river-cell) * -0.0);
   --center-cluster-tint: rgba(128, 128, 128, 0.08);
-  --side-seat-width: 883.2px;
-  --seat-left-anchor-top: 468px;
+  --side-seat-center-y: calc(var(--table-height) * 0.5);
+  --seat-top-top-adjust: 4.5px;
   --main-font: 88.3px;
   --main-cell: calc(var(--main-font) * var(--tile-advance-width-ratio));
   --seat-tile-y-offset: 0px;
@@ -349,7 +349,11 @@ body {
   --seat-tile-y-adjust: 0px;
   --main-tile-y-adjust: 0px;
   --side-seat-top-adjust: calc(var(--seat-tile-y-offset));
+  --seat-left-top-adjust: 0px;
+  --seat-right-top-adjust: 0px;
   --kita-count-top-ratio: -0.5;
+  --tile-shadow-x: 1px;
+  --tile-shadow-y: 2px;
   position: relative;
   width: var(--table-width);
   height: var(--table-height);
@@ -381,7 +385,7 @@ body {
   font-synthesis: none;
   text-rendering: geometricPrecision;
   transform: translateY(var(--tile-y-offset, 0px));
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(var(--tile-shadow-x) var(--tile-shadow-y) 1px rgba(0, 0, 0, 0.22));
 }
 
 .river-text {
@@ -396,7 +400,7 @@ body {
   font-synthesis: none;
   text-rendering: geometricPrecision;
   transform: translateY(var(--tile-y-offset, 0px));
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(var(--tile-shadow-x) var(--tile-shadow-y) 1px rgba(0, 0, 0, 0.22));
 }
 
 .tile.is-horizontal {
@@ -412,28 +416,40 @@ body {
   --tile-text-shift: calc(var(--active-font) * var(--tile-text-shift-ratio));
   --kan-run-width: calc(var(--active-font) * 2.78);
   --melds-reserved-width: calc(var(--kan-run-width) * 4);
-  --hand-draw-width: calc(var(--active-cell) * 2.5);
+  --draw-gap-width: calc(var(--active-cell) * 0.2);
+  --meld-draw-gap-width: calc(var(--active-cell) * 0.5);
+  --hand-draw-width: calc(var(--active-cell) * 2.2);
+  --hand-draw-shift: 0px;
+  --hand-pressure-sign: -1;
+  --hand-pressure-scale: 1;
+  --meld-kita-anchor-shift: 0px;
   --kita-width: var(--active-cell);
   --tile-box-height: calc(var(--active-font) * var(--tile-glyph-height-ratio));
-  --seat-strip-reserved-width: calc(var(--hand-draw-width) + var(--melds-reserved-width) + var(--kita-width));
+  --seat-strip-reserved-width: calc(var(--hand-draw-width) + var(--meld-draw-gap-width) + var(--melds-reserved-width) + var(--kita-width));
 }
 
 .seat-strip {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content var(--kita-width);
+  grid-template-columns: minmax(0, 1fr) var(--meld-draw-gap-width) var(--melds-reserved-width) var(--kita-width);
   align-items: flex-end;
   gap: 0;
   width: var(--seat-strip-reserved-width);
   min-width: var(--seat-strip-reserved-width);
+  min-height: var(--tile-box-height);
 }
 
 .hand-draw {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  grid-column: 1;
   display: flex;
   align-items: flex-end;
-  justify-self: center;
   width: max-content;
   min-width: var(--hand-draw-width);
   min-height: var(--tile-box-height);
+  transform: translateX(calc(-50% + var(--hand-draw-shift)));
 }
 
 .hand {
@@ -464,7 +480,7 @@ body {
   font-feature-settings: "liga" 1;
   font-synthesis: none;
   text-rendering: geometricPrecision;
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(var(--tile-shadow-x) var(--tile-shadow-y) 1px rgba(0, 0, 0, 0.22));
 }
 
 .seat-tile {
@@ -505,19 +521,22 @@ body {
   flex: 0 0 auto;
   width: max-content;
   min-width: var(--active-cell);
-  margin-left: calc(var(--active-cell) * 0.5);
+  margin-left: var(--draw-gap-width);
 }
 
 .melds {
+  grid-column: 3;
   justify-content: flex-end;
   flex: 0 0 auto;
-  width: max-content;
-  min-width: 0;
+  width: var(--melds-reserved-width);
+  min-width: var(--melds-reserved-width);
+  transform: translateX(var(--meld-kita-anchor-shift));
 }
 
 .kita {
   --tile-cell: var(--active-cell);
   --tile-font: var(--active-font);
+  grid-column: 4;
   position: relative;
   display: flex;
   align-items: flex-end;
@@ -528,6 +547,7 @@ body {
   height: var(--tile-box-height);
   min-height: var(--tile-box-height);
   overflow: visible;
+  transform: translateX(var(--meld-kita-anchor-shift));
 }
 
 .kita .tile {
@@ -572,7 +592,9 @@ body {
 }
 
 .seat-top {
-  top: 25.9px;
+  --tile-shadow-x: -1px;
+  --tile-shadow-y: -2px;
+  top: calc(25.9px + var(--seat-top-top-adjust));
   left: 50%;
   right: auto;
   transform: translateX(-50%);
@@ -591,19 +613,27 @@ body {
 
 .seat-left,
 .seat-right {
-  width: var(--side-seat-width);
+  width: var(--seat-strip-reserved-width);
 }
 
 .seat-left {
-  top: calc(var(--seat-left-anchor-top) + var(--side-seat-top-adjust));
-  left: -280px;
+  --tile-shadow-x: 2px;
+  --tile-shadow-y: -1px;
+  --hand-pressure-sign: -1;
+  --meld-kita-anchor-shift: -45px;
+  top: calc(var(--side-seat-center-y) + var(--side-seat-top-adjust) + var(--seat-left-top-adjust));
+  left: -220px;
   transform: rotate(90deg);
   transform-origin: top center;
 }
 
 .seat-right {
-  top: calc(var(--seat-strip-reserved-width) + var(--seat-left-anchor-top) + var(--side-seat-top-adjust) - var(--side-seat-width) + 1.9px);
-  right: -280px;
+  --tile-shadow-x: -2px;
+  --tile-shadow-y: 1px;
+  --hand-pressure-sign: -1;
+  --meld-kita-anchor-shift: 45px;
+  top: calc(var(--side-seat-center-y) + var(--side-seat-top-adjust) + var(--seat-right-top-adjust));
+  right: -220px;
   transform: rotate(-90deg);
   transform-origin: top center;
 }
@@ -667,7 +697,7 @@ body {
   --tile-font: var(--river-font);
   text-align: left;
   contain: layout size;
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.18));
+  filter: drop-shadow(var(--tile-shadow-x) var(--tile-shadow-y) 1px rgba(0, 0, 0, 0.18));
 }
 
 .river-line {
@@ -734,12 +764,16 @@ body {
 }
 
 .river-top {
+  --tile-shadow-x: -1px;
+  --tile-shadow-y: -2px;
   top: calc(50% - var(--panel-half-size) - var(--river-panel-gap) - var(--river-half-height));
   left: 50%;
   transform: translate(-50%, -50%) rotate(180deg);
 }
 
 .river-right {
+  --tile-shadow-x: -2px;
+  --tile-shadow-y: 1px;
   top: 50%;
   left: calc(50% + var(--panel-half-size) + var(--river-panel-gap) + var(--river-half-height));
   right: auto;
@@ -754,6 +788,8 @@ body {
 }
 
 .river-left {
+  --tile-shadow-x: 2px;
+  --tile-shadow-y: -1px;
   top: 50%;
   left: calc(50% - var(--panel-half-size) - var(--river-panel-gap) - var(--river-half-height));
   transform: translate(-50%, -50%) rotate(90deg);
@@ -788,7 +824,7 @@ body {
   font-feature-settings: "liga" 1;
   font-synthesis: none;
   text-rendering: geometricPrecision;
-  filter: drop-shadow(1px 2px 1px rgba(0, 0, 0, 0.18));
+  filter: drop-shadow(var(--tile-shadow-x) var(--tile-shadow-y) 1px rgba(0, 0, 0, 0.18));
 }
 
 .indicator-line {
